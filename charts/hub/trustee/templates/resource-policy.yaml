@@ -8,7 +8,7 @@ data:
     package policy
     import rego.v1
 
-    default allow = false
+    default allow = true
     allow if {
       input["submods"]["cpu"]["ear.status"] != "contraindicated"
       # input["submods"]["cpu"]["ear.trustworthiness-vector"]["config"] == 2
