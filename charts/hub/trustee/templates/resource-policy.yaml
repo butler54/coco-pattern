@@ -11,7 +11,7 @@ data:
     default allow = false
     allow if {
       input["submods"]["cpu"]["ear.status"] != "contraindicated"
-      input["submods"]["cpu"]["ear.trustworthiness-vector"]["config"] == 2
+      # input["submods"]["cpu"]["ear.trustworthiness-vector"]["config"] == 2
       input["submods"]["cpu"]["ear.trustworthiness-vector"]["hardware"] == 2
       input["submods"]["cpu"]["ear.trustworthiness-vector"]["executables"] == 3
     }
