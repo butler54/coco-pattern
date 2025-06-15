@@ -7,13 +7,6 @@ metadata:
   namespace: {{ .Values.kbs.deployNS }}
 data:
   reference-values.json: |
-  apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: rvps-reference-values
-  namespace: trustee-operator-system
-data:
-  reference-values.json: |
     [
      {
         "name": "tdx_pcr11",
