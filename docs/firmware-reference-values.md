@@ -1,83 +1,97 @@
 # Firmware Reference Values for Bare Metal Attestation
 
-This guide explains how to collect firmware reference values for bare metal confidential computing deployments (Intel TDX / AMD SEV-SNP).
+This guide explains how to collect firmware reference values for bare metal confidential computing deployments (Intel TDX / AMD SEV-SNP) using the veritas container tool.
 
 ## Overview
 
 Firmware reference values are cryptographic measurements of the Trusted Computing Base (TCB) components:
 
-- **Intel TDX**: `mr_td` (OVMF code hash), `rtmr_1` (kernel/initrd), `rtmr_2` (cmdline), `xfam` (extended features)
-- **AMD SEV-SNP**: `snp_launch_measurement` (firmware/kernel/initrd hash)
+- **Intel TDX**: `mr_td` (OVMF firmware hash), `rtmr_1` (kernel/initrd), `rtmr_2` (cmdline variants), `xfam` (CPU features)
+- **AMD SEV-SNP**: `snp_launch_measurement` (firmware/kernel/initrd hash), plus other SNP-specific measurements
 
 These values are used by the KBS attestation policy to verify that confidential workloads are running on approved firmware with expected security properties.
 
+## How Veritas Works
+
+Veritas **computes** firmware reference values from OCP release artifacts (kata RPMs, edk2 firmware) - it does **not** collect from running hardware. This means:
+
+- **No cluster pods needed** - runs entirely locally via podman
+- **No bootstrap problem** - can run before deploying the pattern
+- **Reproducible** - same OCP version produces same firmware values
+- **No TEE hardware required** - just downloads and processes artifacts
+
 ## Prerequisites
 
-### 1. Veritas Tool
+### 1. Local Tools
 
-The [veritas](https://github.com/confidential-containers/veritas) tool collects attestation evidence from confidential VMs.
-
-**Installation:** Veritas is automatically installed inside the collection pod by the script. No local installation required.
-
-**Version requirement**: 0.2.0 or later
-
-### 2. Bare Metal Cluster Access
-
-You need:
-
-- A running bare metal cluster with Intel TDX or AMD SEV-SNP hardware
-- KataConfig deployed and in Ready state
-- At least one kata pod successfully running (proves TEE is functional)
-- `oc` CLI logged in to the cluster
-- `jq` installed locally
-
-### 3. Local Tools
+You need these tools on your local machine or bastion host:
 
 ```bash
 # Check prerequisites
-command -v oc && echo "✓ oc CLI installed"
+command -v podman && echo "✓ podman installed"
+command -v yq && echo "✓ yq installed"
 command -v jq && echo "✓ jq installed"
-oc whoami && echo "✓ Logged in to cluster"
+command -v oc && echo "✓ oc CLI installed (optional, for auto-version detection)"
 ```
+
+### 2. Red Hat Pull Secret
+
+You need a Red Hat pull secret to download OCP release artifacts:
+
+```bash
+# Download from https://console.redhat.com/openshift/downloads#tool-pull-secret
+# Save to ~/pull-secret.json
+ls -la ~/pull-secret.json
+```
+
+### 3. OCP Version
+
+Either:
+- Be logged into an OCP cluster (auto-detect version), OR
+- Specify the OCP version manually with `--ocp-version`
 
 ## Workflow
 
-The firmware collection workflow is fully automated via a single command:
+The firmware collection workflow runs entirely locally:
 
 ### Step 1: Collect Firmware Reference Values
 
 ```bash
 # From the coco-pattern repository root:
 make collect-firmware-refvals
+
+# Or manually with options:
+./scripts/collect-firmware-refvals.sh \
+  --pull-secret ~/pull-secret.json \
+  --ocp-version 4.20.15 \
+  --tee tdx
 ```
 
 This command:
 
-1. Launches a kata pod with `RuntimeClass: kata-cc`
-2. Installs veritas inside the pod
-3. Collects firmware measurements from the TEE
-4. Transforms output to RVPS format (JSON with arrays)
+1. Runs veritas via podman container (`quay.io/openshift_sandboxed_containers/coco-tools:1.12`)
+2. Downloads OCP release artifacts (kata-containers RPM, edk2-ovmf firmware)
+3. Computes firmware measurements from artifacts
+4. Transforms output to object format for RVPS
 5. Saves to `~/.coco-pattern/firmware-reference-values.json`
-6. Cleans up the pod
 
 **Output format** (`~/.coco-pattern/firmware-reference-values.json`):
 
 ```json
 {
-  "mr_td": ["a1b2c3d4..."],
-  "rtmr_1": ["e5f6a7b8..."],
-  "rtmr_2": ["c9d0e1f2..."],
-  "snp_launch_measurement": ["f3e4d5c6..."],
-  "xfam": ["e742060000000000"]
+  "mr_td": ["27fb849fb05653add8be4b8c5b2793e6..."],
+  "rtmr_1": ["bc875efe0e9f991c6072e3e1422e5e66..."],
+  "rtmr_2": ["3c764645b39c6402b5c9f2df3d32eedf...", "..."],
+  "xfam": ["0700000000000000"]
 }
 ```
 
 **Key points:**
 
 - Each field is an **array** of strings (supports multiple valid values)
-- Hash values are lowercase hex strings (SHA-384 = 96 hex chars for TDX/SNP firmware)
+- Hash values are lowercase hex strings (SHA-384 = 96 hex chars for TDX firmware)
 - Empty arrays `[]` mean "not available" - attestation will skip that check
-- Only populated fields for the detected TEE type (TDX or SNP)
+- `rtmr_2` has multiple values (one per CPU count variant, max 32 by default)
 
 ### Step 2: Enable in values-secret.yaml
 
@@ -118,10 +132,10 @@ If the KBS cluster is already running:
 oc delete externalsecret firmware-refvals-eso -n trustee-operator-system
 
 # Verify the secret synced
-oc get secret firmware-reference-values -n trustee-operator-system
+oc get secret firmware-reference-values -n trustee-operator-system -o jsonpath='{.data.json}' | base64 -d | jq .
 
 # Check RVPS ConfigMap contains firmware entries
-oc get configmap rvps-reference-values -n trustee-operator-system -o yaml
+oc get configmap rvps-reference-values -n trustee-operator-system -o jsonpath='{.data.reference-values\.json}' | jq '.[] | select(.name | startswith("mr_td") or startswith("rtmr"))'
 ```
 
 If deploying fresh:
@@ -130,32 +144,26 @@ If deploying fresh:
 make install
 ```
 
-The RVPS will automatically reload reference values from the `rvps-reference-values` ConfigMap.
+The RVPS will automatically load reference values from the `rvps-reference-values` ConfigMap.
 
 ## Multi-OCP-Version Support
 
-Different OpenShift versions may have different firmware measurements due to kernel/initrd changes. To support multiple versions:
+Different OpenShift versions may have different firmware measurements due to kernel/firmware updates. To support multiple versions:
 
 1. **Collect from each version:**
 
    ```bash
-   # OCP 4.18 cluster
-   make collect-firmware-refvals
+   # On OCP 4.20.15 cluster or with manual version
+   ./scripts/collect-firmware-refvals.sh --ocp-version 4.20.15
+   cat ~/.coco-pattern/firmware-reference-values.json
 
-   # OCP 4.19 cluster
-   make collect-firmware-refvals-merge
+   # Manually merge additional versions by adding to arrays
+   # Or use veritas directly with multiple --ocp-version flags
    ```
 
-2. **The merge automatically deduplicates:**
+2. **The firmware values contain multiple CPU count variants:**
 
-   The `--merge` flag (used by `collect-firmware-refvals-merge`) reads the existing file, unions the arrays, and deduplicates:
-
-   ```json
-   {
-     "mr_td": ["<4.18-value>", "<4.19-value>"],
-     "rtmr_2": ["<4.18-kernel>", "<4.19-kernel>"]
-   }
-   ```
+   Veritas automatically generates `rtmr_2` values for CPU counts 1-32 (configurable with `--max-cpu-count`). This covers pods with different `nr_cpus` settings.
 
 3. **Load merged values to Vault:**
 
@@ -170,109 +178,73 @@ The attestation policy uses `in` checks - a pod passes if its measurement matche
 The collection script supports several options:
 
 ```bash
-# Merge with existing file
-./scripts/collect-firmware-refvals.sh --merge
+# Specify OCP version manually
+./scripts/collect-firmware-refvals.sh --ocp-version 4.20.15
 
-# Use different namespace for collection pod
-./scripts/collect-firmware-refvals.sh --namespace my-namespace
+# Use different pull secret location
+./scripts/collect-firmware-refvals.sh --pull-secret /path/to/pull-secret.json
 
 # Override output file
 ./scripts/collect-firmware-refvals.sh --output /custom/path/firmware.json
 
-# Use different RuntimeClass (for peer-pods/Azure)
-./scripts/collect-firmware-refvals.sh --runtime-class kata-remote
-
-# Use custom base image
-./scripts/collect-firmware-refvals.sh --pod-image myregistry.io/custom-ubi9:latest
+# Use SNP instead of TDX
+./scripts/collect-firmware-refvals.sh --tee snp
 
 # Show all options
 ./scripts/collect-firmware-refvals.sh --help
 ```
 
-## Known Limitations (Veritas Gaps)
-
-As of veritas 0.2.0, the following are **not** collected and must be added manually if needed:
-
-### 1. TCB Version Numbers
-
-Veritas does not extract minimum TCB version numbers (bootloader, microcode, SNP, TEE). These are available in the attestation evidence but not in the veritas JSON output.
-
-**Workaround:** Extract from attestation quotes manually if needed. Add to the JSON file as:
-
-```json
-{
-  "tcb_bootloader_min": "3",
-  "tcb_snp_min": "20",
-  "tcb_microcode_min": "115"
-}
-```
-
-Then update the attestation policy to check:
-
-```rego
-input.snp.report.reported_tcb.bootloader >= tcb_bootloader_min
-```
-
-### 2. SNP Policy Bits
-
-The SNP guest policy contains multiple flags (smt_allowed, migrate_ma, debug, etc.). Veritas reports the full policy word but does not break it into individual enforcement rules.
-
-To enforce specific policy bits, add to attestation policy:
-
-```rego
-input.snp.report.policy.smt_allowed == false
-input.snp.report.policy.debug == false
-```
-
-### 3. Container Image Measurements
-
-Veritas does not measure the application container image digest. Image policy enforcement is handled separately via:
-
-- Confidential Data Hub (CDH) pulling image from KBS
-- Kyverno policies validating image signatures (cosign, Notary)
-
 ## Troubleshooting
 
-### Collection script fails to launch pod
+### Podman permission denied errors
 
-**Symptom:** `oc apply` fails or pod stuck in Pending
+**Symptom:** `permission denied` when mounting pull secret
 
-**Check:**
-
-- RuntimeClass `kata-cc` exists: `oc get runtimeclass kata-cc`
-- KataConfig is Ready: `oc get kataconfig kata-config`
-- Node has sufficient resources
-
-### Veritas collection fails
-
-**Symptom:** `veritas collect` returns empty or errors
-
-**Check:**
-
-1. Pod is using correct RuntimeClass (kata-cc for bare metal)
-2. Pod is actually running on bare metal hardware (not Azure peer-pods)
-3. TEE device exists inside pod: `oc exec <pod> -- ls /dev/tdx_guest` (TDX) or `ls /dev/sev` (SNP)
-4. Veritas installed correctly: `oc exec <pod> -- veritas --version`
-
-### KBS attestation still passes without firmware values
-
-**Expected behavior:** The attestation policy has backwards-compatible fallback rules. If no firmware reference values are in RVPS, the policy only checks `init_data`.
-
-To **enforce** firmware, remove the fallback rules from `attestation-policy.yaml`:
-
-```rego
-# Remove these "hardware := 2 if count(query_reference_value(...)) == 0" rules
-```
-
-### Hash mismatch after cluster upgrade
-
-**Cause:** Kernel/firmware updated, changing rtmr_2 or mr_td
-
-**Fix:** Re-collect firmware values from upgraded cluster, merge into existing file:
+**Fix:** Add SELinux relabeling flag (automatically handled in script):
 
 ```bash
-make collect-firmware-refvals-merge
+podman run -v ~/pull-secret.json:/pull-secret.json:ro,z ...
+```
+
+### Auto-detection fails
+
+**Symptom:** `Could not auto-detect OCP version`
+
+**Fix:** Either log into a cluster first, or specify manually:
+
+```bash
+./scripts/collect-firmware-refvals.sh --ocp-version 4.20.15
+```
+
+### RVPS policy failure: can't evaluate field mr_td in type []interface {}
+
+**Symptom:** ConfigurationPolicy `rvps-policy-cp` shows NonCompliant
+
+**Cause:** Firmware reference values secret has wrong format (array instead of object)
+
+**Fix:** The collection script now automatically transforms the output. If you collected values manually, re-run:
+
+```bash
+make collect-firmware-refvals
 make load-secrets
+```
+
+### Hash mismatch during attestation
+
+**Cause:** Firmware updated between collection and deployment, or different OCP version
+
+**Fix:** Re-collect firmware values for the actual deployed OCP version:
+
+```bash
+# Detect version from cluster
+oc version -o json | yq -r '.openshiftVersion'
+
+# Re-collect
+make collect-firmware-refvals
+make load-secrets
+
+# Force RVPS refresh
+oc delete configurationpolicy rvps-policy-cp -n local-cluster
 ```
 
 ## SHA-256 vs SHA-384
@@ -296,8 +268,6 @@ Firmware reference values protect against:
 - Kernel tampering (different kernel than expected)
 - Debug mode enabled (allows memory inspection via hypervisor)
 
-Choose the level appropriate for your threat model.
-
 ### Debug Mode
 
 The attestation policy enforces `debug == false` for both TDX and SNP. Debug mode allows:
@@ -310,7 +280,8 @@ The attestation policy enforces `debug == false` for both TDX and SNP. Debug mod
 
 ## References
 
-- [Veritas Documentation](https://github.com/confidential-containers/veritas)
+- [Veritas GitHub Repository](https://github.com/confidential-devhub/veritas)
+- [Red Hat OpenShift Sandboxed Containers Documentation](https://docs.redhat.com/en/documentation/openshift_sandboxed_containers/1.12)
 - [Intel TDX Attestation Spec](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-trust-domain-extensions.html)
 - [AMD SEV-SNP Attestation Spec](https://www.amd.com/en/developer/sev.html)
 - [Trustee Attestation Policy Reference](https://github.com/openshift/trustee-operator/tree/main/config/templates)
