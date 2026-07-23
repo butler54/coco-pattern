@@ -3,12 +3,10 @@ global:
 
 dcapOperator:
   enabled: true
+  # Offline mode for disconnected clusters. PCK secrets are provisioned
+  # via the Makefile offline workflow (make dcap-offline-provision), not
+  # through Helm or ArgoCD.
   mode: "Offline"
   modeConfig: "{}"
   nodeSelector:
-    - "intel.feature.node.kubernetes.io/sgx=true"
-  pckSecrets: []
-
-secretStore:
-  name: ""
-  kind: ""
+    intel.feature.node.kubernetes.io/sgx: "true"

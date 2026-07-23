@@ -15,8 +15,8 @@ spec:
     {{ .Values.dcapOperator.mode }}: {{ .Values.dcapOperator.modeConfig | default "{}" }}
   {{- if .Values.dcapOperator.nodeSelector }}
   nodeSelector:
-    {{- range .Values.dcapOperator.nodeSelector }}
-    - {{ . | quote }}
+    {{- range $key, $value := .Values.dcapOperator.nodeSelector }}
+    {{ $key }}: {{ $value | quote }}
     {{- end }}
   {{- end }}
 {{- end }}

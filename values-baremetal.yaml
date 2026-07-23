@@ -238,11 +238,11 @@ clusterGroup:
           name: sgxdeviceplugin-sample
           jsonPointers:
             - /spec
-      overrides:
-        - name: secretStore.name
-          value: vault-backend
-        - name: secretStore.kind
-          value: ClusterSecretStore
+        - group: trustedservices.intel.com
+          kind: TdxQuoteGenerationService
+          name: intel-tdx-dcap
+          jsonPointers:
+            - /status
 
     nvidia-gpu:
       name: nvidia-gpu

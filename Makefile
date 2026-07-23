@@ -26,14 +26,52 @@ collect-firmware-refvals: ## Collect firmware reference values (bare metal, defa
 collect-azure-refvals: ## Collect PCR reference values (Azure)
 	@scripts/collect-firmware-refvals.sh --platform azure
 
-##@ DCAP Collateral Collection
+##@ DCAP Trustee Collateral (for RVPS quote verification -- separate from PCK provisioning)
 .PHONY: collect-dcap-collateral
-collect-dcap-collateral: ## Collect DCAP collateral for Trustee RVPS (TCB info, QE identity, PCK CRL)
-	@scripts/collect-dcap-collateral.sh
+collect-dcap-collateral: ## Collect DCAP collateral for Trustee RVPS (TCB info, QE identity, PCK CRL). Requires --fmspc FMSPC.
+	@scripts/collect-dcap-collateral.sh $(ARGS)
 
-.PHONY: collect-qgs-platform-data
-collect-qgs-platform-data: ## Collect QGS platform data for offline PCK cert provisioning (requires --node NODE_IP)
-	@scripts/collect-qgs-platform-data.sh $(ARGS)
+##@ DCAP Offline Provisioning (disconnected cluster PCK cert workflow)
+## Uses Azure cluster (Online mode) as intermediary to obtain PCK certs
+## for the disconnected baremetal cluster (Offline mode).
+##
+## Full workflow: make dcap-offline-provision
+## Individual steps: make dcap-extract-platform-data / dcap-apply-platform-data / etc.
+##
+## Environment:
+##   KUBECONFIG_DISCONNECTED  node-02 kubeconfig (default: ~/node-02-output/421_build/auth/kubeconfig)
+##   KUBECONFIG_CONNECTED     Azure kubeconfig (default: ~/azure/kubeconfig)
+
+DCAP_NS := intel-dcap-operator-system
+DCAP_WORK_DIR := $(HOME)/.coco-pattern/dcap-offline
+
+.PHONY: dcap-offline-provision
+dcap-offline-provision: ## Run full DCAP offline PCK provisioning workflow (extract -> Azure register -> apply back)
+	@scripts/dcap-offline-provision.sh all
+
+.PHONY: dcap-extract-platform-data
+dcap-extract-platform-data: ## Step 1: Extract platform-data secrets from disconnected cluster
+	@scripts/dcap-offline-provision.sh extract-platform-data
+
+.PHONY: dcap-apply-platform-data
+dcap-apply-platform-data: ## Step 2: Apply platform-data secrets to Azure (connected) cluster
+	@scripts/dcap-offline-provision.sh apply-platform-data
+
+.PHONY: dcap-wait-for-pck
+dcap-wait-for-pck: ## Step 3: Wait for Azure DCAP operator to create PCK secrets
+	@scripts/dcap-offline-provision.sh wait-for-pck
+
+.PHONY: dcap-extract-pck
+dcap-extract-pck: ## Step 4: Extract PCK secrets from Azure cluster
+	@scripts/dcap-offline-provision.sh extract-pck
+
+.PHONY: dcap-apply-pck
+dcap-apply-pck: ## Step 5: Apply PCK secrets to disconnected cluster
+	@scripts/dcap-offline-provision.sh apply-pck
+
+.PHONY: dcap-verify
+dcap-verify: ## Verify QGS pods and DCAP secrets on disconnected cluster
+	@scripts/dcap-offline-provision.sh verify
 
 ##@ Hardware Detection
 .PHONY: detect-hardware

@@ -1,5 +1,5 @@
 apiVersion: v2
-description: Intel TDX DCAP Operator CR and QGS secrets for TDX remote attestation.
+description: Intel TDX DCAP Operator CR and SGX device plugin for TDX remote attestation.
 keywords:
 - pattern
 - intel
