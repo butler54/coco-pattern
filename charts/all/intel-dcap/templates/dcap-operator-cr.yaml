@@ -1,0 +1,22 @@
+{{- if .Values.dcapOperator.enabled }}
+apiVersion: trustedservices.intel.com/v1
+kind: TdxQuoteGenerationService
+metadata:
+  name: intel-tdx-dcap
+  labels:
+    app.kubernetes.io/name: tdx-quote-generation-service
+    app.kubernetes.io/managed-by: intel-tdx-dcap-operator
+    app.kubernetes.io/part-of: {{ .Values.global.pattern }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  platformRegistration:
+    {{ .Values.dcapOperator.mode }}: {{ .Values.dcapOperator.modeConfig | default "{}" }}
+  {{- if .Values.dcapOperator.nodeSelector }}
+  nodeSelector:
+    {{- range .Values.dcapOperator.nodeSelector }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- end }}
+{{- end }}

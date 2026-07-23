@@ -1,6 +1,13 @@
-baremetal:
-  pccs:
-    nodeSelector: ""  # optional: hostname for PCCS pinning. Empty = schedule anywhere with tolerations.
+global:
+  pattern: coco-pattern
+
+dcapOperator:
+  enabled: true
+  mode: "Offline"
+  modeConfig: "{}"
+  nodeSelector:
+    - "intel.feature.node.kubernetes.io/sgx=true"
+  pckSecrets: []
 
 secretStore:
   name: ""

@@ -26,6 +26,15 @@ collect-firmware-refvals: ## Collect firmware reference values (bare metal, defa
 collect-azure-refvals: ## Collect PCR reference values (Azure)
 	@scripts/collect-firmware-refvals.sh --platform azure
 
+##@ DCAP Collateral Collection
+.PHONY: collect-dcap-collateral
+collect-dcap-collateral: ## Collect DCAP collateral for Trustee RVPS (TCB info, QE identity, PCK CRL)
+	@scripts/collect-dcap-collateral.sh
+
+.PHONY: collect-qgs-platform-data
+collect-qgs-platform-data: ## Collect QGS platform data for offline PCK cert provisioning (requires --node NODE_IP)
+	@scripts/collect-qgs-platform-data.sh $(ARGS)
+
 ##@ Hardware Detection
 .PHONY: detect-hardware
 detect-hardware: ## Detect hardware profile from cluster nodes (requires KUBECONFIG or oc login)

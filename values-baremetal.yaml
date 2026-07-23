@@ -78,6 +78,11 @@ clusterGroup:
       namespace: openshift-operators
       source: certified-operators
       channel: stable
+    intel-tdx-dcap:
+      name: intel-tdx-dcap-operator
+      namespace: openshift-operators
+      source: certified-operators
+      channel: alpha
     gpu-operator:
       name: gpu-operator-certified
       namespace: nvidia-gpu-operator
@@ -179,7 +184,7 @@ clusterGroup:
         - name: kbs.tdx.enabled
           value: "true"
         - name: kbs.tdx.collateralService
-          value: "https://pccs-service.intel-dcap.svc.cluster.local:8042/sgx/certification/v4/"
+          value: "https://api.trustedservices.intel.com/sgx/certification/v4/"
         - name: kbs.gpu.enabled
           value: "true"
         - name: kbs.baremetal.enabled
