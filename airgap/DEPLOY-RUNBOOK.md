@@ -198,7 +198,7 @@ and starts the service; subsequent runs auto-sync via the D-1 step.
 echo "=== 0-3: Git Server Init ==="
 
 # a) Clone the pattern repositories (internet required — run before air-gapping)
-git clone -b dev/airgap-testing \
+git clone -b dev/regression-v8-airgap \
   https://github.com/butler54/coco-pattern.git ~/coco-pattern
 git clone -b dev/phase1-testing \
   https://github.com/butler54/trustee-chart.git ~/trustee-chart
@@ -344,7 +344,7 @@ cd ~/coco-pattern
 git remote get-url origin 2>&1 | tee -a "$LOG"
 # EXPECTED: ${GIT_SERVER}/coco-pattern.git
 git branch --show-current 2>&1 | tee -a "$LOG"
-# EXPECTED: dev/airgap-testing
+# EXPECTED: dev/regression-v8-airgap
 
 du -sh ~/oc-mirror-workspace 2>&1 | tee -a "$LOG"
 
@@ -504,19 +504,19 @@ echo "=== B-1: Sync Repos ===" 2>&1 | tee -a "$LOG"
 
 # Sync git mirror (bare repo) from GitHub
 cd ~/public_html/git/coco-pattern.git
-git fetch https://github.com/butler54/coco-pattern.git dev/airgap-testing:dev/airgap-testing --force \
+git fetch https://github.com/butler54/coco-pattern.git dev/regression-v8-airgap:dev/regression-v8-airgap --force \
   2>&1 | tee -a "$LOG"
 
 # Pull into working copy
 cd ~/coco-pattern
 git fetch origin 2>&1 | tee -a "$LOG"
-git reset --hard origin/dev/airgap-testing 2>&1 | tee -a "$LOG"
+git reset --hard origin/dev/regression-v8-airgap 2>&1 | tee -a "$LOG"
 
 # Verify remote and branch
 git remote get-url origin 2>&1 | tee -a "$LOG"
 # MUST: ${GIT_SERVER}/coco-pattern.git
 git branch --show-current 2>&1 | tee -a "$LOG"
-# MUST: dev/airgap-testing
+# MUST: dev/regression-v8-airgap
 
 # Verify clustergroup chart version in imageset-config
 echo "Checking imageset-config clustergroup version:" 2>&1 | tee -a "$LOG"
@@ -981,7 +981,7 @@ cd ~/coco-pattern
 git remote get-url origin 2>&1 | tee -a "$LOG"
 # MUST: ${GIT_SERVER}/coco-pattern.git
 git branch --show-current 2>&1 | tee -a "$LOG"
-# MUST: dev/airgap-testing
+# MUST: dev/regression-v8-airgap
 
 ./pattern.sh make install \
   2>&1 | tee -a "$LOG"
@@ -1577,7 +1577,7 @@ After analysis, commit DEVIATIONS.md to coco-gsd:
 cd ~/coco-pattern
 git add DEVIATIONS.md
 git commit -m "docs(run-25): record run deviations"
-git push origin dev/airgap-testing
+git push origin dev/regression-v8-airgap
 
 # Then in coco-gsd
 cd ~/coco-gsd

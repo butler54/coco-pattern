@@ -80,16 +80,14 @@ clusterGroup:
     intel-device-plugins:
       name: intel-device-plugins-operator
       namespace: openshift-operators
-      # Required for airgap -- set to your mirrored catalog source name
-      # source: cs-certified-operator-index-v4-22
+      source: cs-certified-operator-index-v4-22
       channel: stable
       annotations:
         argocd.argoproj.io/sync-wave: "10"
     intel-tdx-dcap:
       name: intel-tdx-dcap-operator
       namespace: intel-dcap-operator-system
-      # Required for airgap -- set to your mirrored catalog source name
-      # source: cs-certified-operator-index-v4-22
+      source: cs-certified-operator-index-v4-22
       channel: alpha
       annotations:
         argocd.argoproj.io/sync-wave: "10"
@@ -164,10 +162,9 @@ clusterGroup:
       project: hub
       chart: acm
       chartVersion: 0.1.*
-      # Required for airgap -- set to your mirrored catalog source name
-      # overrides:
-      #   - name: acm.mce_operator.source
-      #     value: "cs-redhat-operator-index-v4-22"
+      overrides:
+        - name: acm.mce_operator.source
+          value: "cs-redhat-operator-index-v4-22"
 
     vault:
       name: vault

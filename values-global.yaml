@@ -3,7 +3,7 @@ global:
   # singleArgoCD must be under global: (not main:) for the clustergroup chart to read it.
   # When true, child apps are managed by the vp-gitops ArgoCD instance — no second ArgoCD.
   singleArgoCD: true
-  multiSourceRepoUrl: quay.io/validatedpatterns
+  multiSourceRepoUrl: 172.25.36.135:8443/validatedpatterns
   storageProvider: lvm  # Options: hpp, lvm, external
   clusterVersion: "4.22"  # OCP minor version for operator pins. Options: 4.19, 4.20, 4.21
   secretStore:
@@ -36,28 +36,22 @@ main:
   #   azure-spoke   — Azure spoke (multi-cluster, imported into ACM from trusted-hub)
   #   baremetal     — Bare metal (Intel TDX / AMD SEV-SNP, hardware profile gated)
   #   trusted-hub   — Hub for multi-cluster (Trustee + ACM, manages spoke clusters)
-  clusterGroupName: azure
+  clusterGroupName: baremetal
   git:
-    # Connected mode: repoURL is inferred from your local git remote.
-    # Disconnected: uncomment and set to the HTTP URL served by git-http-server.py
-    # repoURL: http://JUMP_HOST_IP:8080/coco-pattern.git
-    revision: main
+    repoURL: http://172.25.36.135:8080/coco-pattern.git
+    revision: dev/regression-v8-airgap
   patternsOperator:
-    # Required for airgap -- set to your mirrored catalog source name
-    # source: cs-community-operator-index-v4-22
+    source: cs-community-operator-index-v4-22
     channel: fast
   gitops:
-    # Required for airgap -- set to your mirrored catalog source name
-    # operatorSource: cs-redhat-operator-index-v4-22
-    # Channel must match what's available in the mirrored catalog.
-    # The mirrored catalog may only have 'latest', not version-specific channels.
+    operatorSource: cs-redhat-operator-index-v4-22
     channel: latest
   multiSourceConfig:
     enabled: true
     clusterGroupChartVersion: 0.9.58
     # VP OCI Helm charts are mirrored to mirror-registry by oc-mirror additionalImages.
     # Use mirror-registry directly — no Quay dependency for airgap deploys.
-    helmRepoUrl: quay.io/validatedpatterns
+    helmRepoUrl: 172.25.36.135:8443/validatedpatterns
 
 # Common secret store configuration used across multiple charts.
 # NOTE: Charts reference secretStore.* (top-level, not global.secretStore.*).

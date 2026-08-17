@@ -3,8 +3,7 @@
 # Disable wgpolicyk8s CRDs and reports controller (not needed for coco-pattern).
 global:
   image:
-    # Required for airgap -- set to your mirror registry host:port
-    registry: ""
+    registry: "172.25.36.135:8443"
 admissionController:
   container:
     securityContext: null
