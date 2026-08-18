@@ -130,12 +130,11 @@ systemctl --user enable local-registry.service
 loginctl enable-linger "$USER"
 echo "local-registry systemd user service enabled"
 
-# h) Trust the CA for container tools (per-user, no sudo needed)
+# h) Trust the CA for container tools (per-user, no sudo required)
+# podman/skopeo/oc-mirror read from this directory automatically.
+# curl: pass --cacert ~/mirror-registry-certs/ca.crt
+# oc image mirror: pass --insecure=true
 cp ~/mirror-registry-certs/ca.crt ~/.config/containers/certs.d/${MIRROR_REGISTRY}/ca.crt
-# NOTE: If you have sudo, also add to system trust for oc/curl TLS verification:
-#   sudo cp ~/mirror-registry-certs/ca.crt /etc/pki/ca-trust/source/anchors/mirror-registry-ca.crt
-#   sudo update-ca-trust
-# Without sudo, pass --cacert or --insecure flags to oc/curl commands as needed.
 echo "CA trusted for container tools"
 
 # i) Build combined-ca-bundle.pem (used by labctl --additional-trust-bundle)
@@ -280,10 +279,9 @@ mkdir -p ~/.config/containers/certs.d/${MIRROR_REGISTRY}
 cp ~/mirror-registry-certs/ca.crt ~/.config/containers/certs.d/${MIRROR_REGISTRY}/ca.crt
 echo "local-registry CA trusted for container tools" | tee -a "$LOG"
 
-# If you have sudo, also add to system trust for oc/curl TLS verification:
-#   sudo cp ~/mirror-registry-certs/ca.crt /etc/pki/ca-trust/source/anchors/mirror-registry-ca.crt
-#   sudo update-ca-trust
-# Without sudo, pass --cacert or --insecure flags to oc/curl commands as needed.
+# Per-user cert dir handles podman/skopeo/oc-mirror TLS.
+# curl: pass --cacert ~/mirror-registry-certs/ca.crt
+# oc image mirror: pass --insecure=true
 ```
 
 > At run end, Claude will SSH in and read this log file for findings analysis.
