@@ -110,12 +110,16 @@ auth:
     path: /auth/htpasswd
 EOF
 
-# f) Create podman container (does not start yet)
+# f) Create and start podman container
+# config.yml → /etc/docker/registry/config.yml (where registry:2 reads it)
+# htpasswd → /auth/htpasswd (where config.yml references it)
+# certs → /certs/ (where config.yml references server.crt/server.key)
 podman create \
   --name local-registry \
   -p "${MREG_PORT}:8443" \
   -v ~/local-registry:/var/lib/registry:z \
-  -v ~/mirror-registry-config:/auth:z \
+  -v ~/mirror-registry-config/config.yml:/etc/docker/registry/config.yml:z \
+  -v ~/mirror-registry-config/htpasswd:/auth/htpasswd:z \
   -v ~/mirror-registry-certs:/certs:z \
   docker.io/library/registry:2
 podman start local-registry
