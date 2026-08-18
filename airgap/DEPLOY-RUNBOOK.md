@@ -27,7 +27,7 @@
 > **Skip this phase on repeat runs.** These steps configure the jump host infrastructure
 > (mirror registry, git server) that persists across deployments. Run once per jump host.
 >
-> **Prerequisites:** Internet access on the jump host, sudo rights, `podman` and `openssl`
+> **Prerequisites:** Internet access on the jump host, `podman` and `openssl`
 > installed, and `python3-passlib` or `httpd-tools` for `htpasswd`.
 
 ### 0-0: Set Site Variables
@@ -130,11 +130,13 @@ systemctl --user enable local-registry.service
 loginctl enable-linger "$USER"
 echo "local-registry systemd user service enabled"
 
-# h) Trust the CA for container tools and system
+# h) Trust the CA for container tools (per-user, no sudo needed)
 cp ~/mirror-registry-certs/ca.crt ~/.config/containers/certs.d/${MIRROR_REGISTRY}/ca.crt
-sudo cp ~/mirror-registry-certs/ca.crt /etc/pki/ca-trust/source/anchors/mirror-registry-ca.crt
-sudo update-ca-trust
-echo "CA trusted for container tools and system"
+# NOTE: If you have sudo, also add to system trust for oc/curl TLS verification:
+#   sudo cp ~/mirror-registry-certs/ca.crt /etc/pki/ca-trust/source/anchors/mirror-registry-ca.crt
+#   sudo update-ca-trust
+# Without sudo, pass --cacert or --insecure flags to oc/curl commands as needed.
+echo "CA trusted for container tools"
 
 # i) Build combined-ca-bundle.pem (used by labctl --additional-trust-bundle)
 # The mirror-registry CA is the only CA required — Quay is not used in this deployment.
@@ -278,11 +280,10 @@ mkdir -p ~/.config/containers/certs.d/${MIRROR_REGISTRY}
 cp ~/mirror-registry-certs/ca.crt ~/.config/containers/certs.d/${MIRROR_REGISTRY}/ca.crt
 echo "local-registry CA trusted for container tools" | tee -a "$LOG"
 
-# Also add to system trust so openssl/oc image extract trusts mirror-registry TLS
-# (container tools use ~/.config/containers/certs.d; oc uses system trust for TLS verification)
-sudo cp ~/mirror-registry-certs/ca.crt /etc/pki/ca-trust/source/anchors/mirror-registry-ca.crt
-sudo update-ca-trust
-echo "local-registry CA added to system trust" | tee -a "$LOG"
+# If you have sudo, also add to system trust for oc/curl TLS verification:
+#   sudo cp ~/mirror-registry-certs/ca.crt /etc/pki/ca-trust/source/anchors/mirror-registry-ca.crt
+#   sudo update-ca-trust
+# Without sudo, pass --cacert or --insecure flags to oc/curl commands as needed.
 ```
 
 > At run end, Claude will SSH in and read this log file for findings analysis.
