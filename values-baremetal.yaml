@@ -332,6 +332,14 @@ clusterGroup:
       path: charts/coco-supported/hello-openshift
       annotations:
         argocd.argoproj.io/sync-wave: "30"
+      # CoCo guest pulls images directly — no IDMS/ITMS in the CVM.
+      # Override image to target the mirror registry.
+      # overrides:
+      #   - name: image
+      #     value: "MIRROR_REGISTRY_HOST:8443/ubi9/httpd-24@sha256:68a91ff691092f455fea682330c499588747231c16516cd4f35aff821e6847f2"
+      overrides:
+        - name: image
+          value: "172.25.36.135:8443/ubi9/httpd-24@sha256:68a91ff691092f455fea682330c499588747231c16516cd4f35aff821e6847f2"
       syncPolicy:
         automated:
           prune: true
@@ -343,6 +351,9 @@ clusterGroup:
       path: charts/coco-supported/kbs-access-curl
       annotations:
         argocd.argoproj.io/sync-wave: "30"
+      overrides:
+        - name: image
+          value: "172.25.36.135:8443/ubi9/httpd-24@sha256:68a91ff691092f455fea682330c499588747231c16516cd4f35aff821e6847f2"
       syncPolicy:
         automated:
           prune: true
@@ -354,6 +365,9 @@ clusterGroup:
       path: charts/coco-supported/kbs-access-sealed
       annotations:
         argocd.argoproj.io/sync-wave: "30"
+      overrides:
+        - name: image
+          value: "172.25.36.135:8443/ubi9/httpd-24@sha256:68a91ff691092f455fea682330c499588747231c16516cd4f35aff821e6847f2"
       syncPolicy:
         automated:
           prune: true
