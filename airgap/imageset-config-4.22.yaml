@@ -95,8 +95,9 @@ mirror:
 
   # Additional container images (application workloads)
   additionalImages:
-    # Workload images
-    - name: registry.redhat.io/ubi9/httpd-24:latest
+    # Workload images — use the exact digest from charts/coco-supported/*/values.yaml
+    # oc-mirror with :latest mirrors the current tag which may differ from the chart digest
+    - name: registry.redhat.io/ubi9/httpd-24@sha256:68a91ff691092f455fea682330c499588747231c16516cd4f35aff821e6847f2
     - name: registry.redhat.io/ubi9/ubi:latest
     # NFD operand — worker/master/gc DaemonSets use this tag, NOT the operator digest.
     - name: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:v4.22
