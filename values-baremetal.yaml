@@ -80,6 +80,8 @@ clusterGroup:
     intel-device-plugins:
       name: intel-device-plugins-operator
       namespace: openshift-operators
+      # Rerquired for connected
+      source: certified-operators
       # Required for airgap -- set to your mirrored catalog source name
       # source: cs-certified-operator-index-v4-22
       channel: stable
@@ -88,6 +90,8 @@ clusterGroup:
     intel-tdx-dcap:
       name: intel-tdx-dcap-operator
       namespace: intel-dcap-operator-system
+      # Required for connected
+      source: certified-operators
       # Required for airgap -- set to your mirrored catalog source name
       # source: cs-certified-operator-index-v4-22
       channel: alpha
