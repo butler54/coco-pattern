@@ -4,7 +4,7 @@ global:
   # When true, child apps are managed by the vp-gitops ArgoCD instance — no second ArgoCD.
   singleArgoCD: true
   multiSourceRepoUrl: quay.io/validatedpatterns
-  storageProvider: lvm  # Options: hpp, lvm, external
+  storageProvider: hpp  # Options: hpp, lvm, external
   clusterVersion: "4.22"  # OCP minor version for operator pins. Options: 4.19, 4.20, 4.21
   secretStore:
     # Warning: This must be present even if it is set to none.
@@ -44,7 +44,7 @@ main:
   #   baremetal-hub  — Bare metal hub (Trustee + ACM, mixed TDX/SNP, manages baremetal spokes)
   #   baremetal-spoke — Bare metal spoke (imported into ACM from baremetal-hub)
   #   trusted-hub    — Hub for multi-cluster Azure (Trustee + ACM, manages azure-spoke clusters)
-  clusterGroupName: azure
+  clusterGroupName: baremmetal,
   git:
     # Connected mode: repoURL is inferred from your local git remote.
     # Disconnected: uncomment and set to the HTTP URL served by git-http-server.py
