@@ -1,0 +1,6 @@
+global:
+  kubevirt:
+    vm:
+      enabled: true
+      tdx:
+        enabled: true
