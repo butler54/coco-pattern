@@ -280,28 +280,28 @@ clusterGroup:
     # Deploys HyperConverged CR with TDX feature gate and SELinux MCO for QGS socket access.
     # Requires Intel TDX hardware and CNV operator. Gated by chart-level values.
     # Uncomment to enable:
-    # kubevirtconfidential:
-    #   name: kubevirtconfidential
-    #   namespace: openshift-cnv
-    #   project: hub
-    #   path: charts/all/kubevirtconfidential
-    #   annotations:
-    #     argocd.argoproj.io/sync-wave: "30"
+    kubevirtconfidential:
+      name: kubevirtconfidential
+      namespace: openshift-cnv
+      project: hub
+      path: charts/all/kubevirtconfidential
+      annotations:
+        argocd.argoproj.io/sync-wave: "30"
 
     # KubeVirt test VMs (experimental)
     # Baseline and TDX-enabled RHEL9 VMs for validating confidential VM workloads.
     # Requires kubevirtconfidential above and LVM storage. Gated by chart-level values.
     # Uncomment to enable:
-    # kubevirtvm:
-    #   name: kubevirtvm
-    #   namespace: kubevirt-vms
-    #   project: hub
-    #   path: charts/all/kubevirtvm
-    #   annotations:
-    #     argocd.argoproj.io/sync-wave: "35"
-    #   syncPolicy:
-    #     automated:
-    #       prune: true
+    kubevirtvm:
+      name: kubevirtvm
+      namespace: kubevirt-vms
+      project: hub
+      path: charts/all/kubevirtvm
+      annotations:
+        argocd.argoproj.io/sync-wave: "35"
+      syncPolicy:
+        automated:
+          prune: true
 
     # GPU apps disabled — depends on gpu-operator subscription (disabled above).
     # nvidia-gpu:
