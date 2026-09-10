@@ -18,6 +18,8 @@ metadata:
         {"op": "add", "path": "/spec/configuration/ovmfPath", "value": "/usr/share/edk2/ovmf"}
       ]
 spec:
+  logVerbosityConfig:
+    virtLauncher: 9
   featureGates:
     # Guest images mirrored (Phase 26 oc-mirror run) — DataImportCron enabled.
     enableCommonBootImageImport: true
