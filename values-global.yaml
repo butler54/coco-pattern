@@ -11,7 +11,7 @@ global:
   # trustee fetches platform collateral directly from Intel PCS.
   # true (disconnected): set by overrides/values-baremetal-airgap.yaml —
   # manual PCK provisioning (scripts/dcap-pck.py) and file-backed collateral.
-  airgap: false
+  airgap: true
   secretStore:
     # Warning: This must be present even if it is set to none.
     backend: vault # none, vault, kubernetes
@@ -57,12 +57,12 @@ main:
     # repoURL: http://JUMP_HOST_IP:8080/coco-pattern.git
     revision: main
   patternsOperator:
-    # Required for airgap -- set to your mirrored catalog source name
-    # source: cs-community-operator-index-v4-22
+    # Airgap (disconnected branch): mirrored catalog source
+    source: cs-community-operator-index-v4-22
     channel: fast
   gitops:
-    # Required for airgap -- set to your mirrored catalog source name
-    # operatorSource: cs-redhat-operator-index-v4-22
+    # Airgap (disconnected branch): mirrored catalog source
+    operatorSource: cs-redhat-operator-index-v4-22
     # Keep this channel aligned with airgap/imageset-config-4.22.yaml.
     channel: gitops-1.22
   multiSourceConfig:
