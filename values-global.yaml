@@ -12,7 +12,7 @@ global:
   # true (disconnected): loads the airgap overlay (repoints subscriptions
   # and workload images at the mirror); manual PCK provisioning
   # (scripts/dcap-pck.py) and file-backed collateral.
-  airgap: false
+  airgap: true
   # Mirror root for the workload image rewrite — set on the disconnected
   # deploy branch (config-only delta), the same value oc-mirror was pointed
   # at. MUST include the org path for Quay targets (e.g.
@@ -65,12 +65,12 @@ main:
     # repoURL: http://JUMP_HOST_IP:8080/coco-pattern.git
     revision: main
   patternsOperator:
-    # Required for airgap -- set to your mirrored catalog source name
-    # source: cs-community-operator-index-v4-22
+    # Airgap (disconnected branch): mirrored catalog source
+    source: cs-community-operator-index-v4-22
     channel: fast
   gitops:
-    # Required for airgap -- set to your mirrored catalog source name
-    # operatorSource: cs-redhat-operator-index-v4-22
+    # Airgap (disconnected branch): mirrored catalog source
+    operatorSource: cs-redhat-operator-index-v4-22
     # Keep this channel aligned with airgap/imageset-config-4.22.yaml.
     channel: gitops-1.22
     # App-of-apps sync-wave gating. ArgoCD 1.8 dropped the Application
