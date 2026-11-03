@@ -12,14 +12,14 @@ global:
   # true (disconnected): loads the airgap overlay (repoints subscriptions
   # and workload images at the mirror); manual PCK provisioning
   # (scripts/dcap-pck.py) and file-backed collateral.
-  airgap: false
+  airgap: true
   # Mirror root for the workload image rewrite — set on the disconnected
   # deploy branch (config-only delta), the same value oc-mirror was pointed
   # at. MUST include the org path for Quay targets (e.g.
   # quay.example:443/mirror): the CoCo guest VMs pull images directly and
   # every reference carries it. Empty is fine while connected; the workload
   # charts fail rendering if this is empty (or a placeholder) in airgap mode.
-  mirrorRegistry: ""
+  mirrorRegistry: quay.apac-tech-lab.net:443/mirror
   secretStore:
     # Warning: This must be present even if it is set to none.
     backend: vault # none, vault, kubernetes
@@ -58,19 +58,18 @@ main:
   #   baremetal-hub  — Bare metal hub (Trustee + ACM, mixed TDX/SNP, manages baremetal spokes)
   #   baremetal-spoke — Bare metal spoke (imported into ACM from baremetal-hub)
   #   trusted-hub    — Hub for multi-cluster Azure (Trustee + ACM, manages azure-spoke clusters)
-  clusterGroupName: azure
+  clusterGroupName: baremetal
   git:
-    # Connected mode: repoURL is inferred from your local git remote.
-    # Disconnected: uncomment and set to the HTTP URL served by git-http-server.py
-    # repoURL: http://JUMP_HOST_IP:8080/coco-pattern.git
-    revision: main
+    # Disconnected: served by scripts/git-http-server.py on the jump host
+    repoURL: http://user-jump.int.apac-tech-lab.net:8080/coco-pattern.git
+    revision: deploy/node-02-disconnected
   patternsOperator:
-    # Required for airgap -- set to your mirrored catalog source name
-    # source: cs-community-operator-index-v4-22
+    # Airgap (disconnected deploy branch): mirrored catalog source
+    source: cs-community-operator-index-v4-22
     channel: fast
   gitops:
-    # Required for airgap -- set to your mirrored catalog source name
-    # operatorSource: cs-redhat-operator-index-v4-22
+    # Airgap (disconnected deploy branch): mirrored catalog source
+    operatorSource: cs-redhat-operator-index-v4-22
     # Keep this channel aligned with airgap/imageset-config-4.22.yaml.
     channel: gitops-1.22
     # App-of-apps sync-wave gating. ArgoCD 1.8 dropped the Application
@@ -88,7 +87,7 @@ main:
     # VP OCI Helm charts are mirrored to mirror-registry by oc-mirror additionalImages.
     # Use mirror-registry directly — no Quay dependency for airgap deploys.
     # REQUIRED in airgap: no IDMS redirect in the ArgoCD repo-server.
-    helmRepoUrl: quay.io/validatedpatterns
+    helmRepoUrl: quay.apac-tech-lab.net:443/mirror/validatedpatterns
 
 # Common secret store configuration used across multiple charts.
 # NOTE: Charts reference secretStore.* (top-level, not global.secretStore.*).
