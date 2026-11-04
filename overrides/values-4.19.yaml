@@ -1,7 +1,45 @@
 # OCP 4.19 version-specific operator pins
-# Applied via sharedValueFiles when global.clusterVersion is "4.19"
+# Validated against OCP 4.19.53 (z-stream) on 2026-11-04.
+# Evidence: ~/mv-e2e/4.19/evidence/A2.txt (jump host) — operator survey taken
+# from the live redhat-operators / certified-operators catalogs on that cluster.
+# Applied via sharedValueFiles when global.clusterVersion is "4.19".
+# Channels are pinned explicitly and validated versions recorded as comments,
+# so this file doubles as the A2 survey record.
+# Scalars only — Helm replaces lists on merge (see values-baremetal-airgap.yaml
+# hazard note). GitOps is pinned in values-global.yaml (gitops-1.22, head
+# 1.22.3), not here. Kyverno ships as a Helm chart, not OLM — no pin needed.
 
 clusterGroup:
   subscriptions:
+    acm:
+      # advanced-cluster-management 2.17.3 (release-2.17 is the default channel)
+      channel: release-2.17
+    eso:
+      # openshift-external-secrets-operator 1.2.1
+      channel: stable-v1
+    sandbox:
+      # sandboxed-containers-operator 1.13.1
+      channel: stable
+    trustee:
+      # trustee-operator 1.2.1
+      channel: stable
+    cert-manager:
+      # openshift-cert-manager-operator 1.20.1
+      channel: stable-v1
     lvm-operator:
+      # lvms-operator 4.19.5 — stable-4.19 is the only 4.19-valid channel
+      # (no stable-4.20+ channel exists in this catalog)
       channel: stable-4.19
+    cnv:
+      # kubevirt-hyperconverged 4.19.37 — the candidate channel offers a newer
+      # build (4.19.45) that was deliberately not chosen
+      channel: stable
+    nfd:
+      # node-feature-discovery 4.19.0-202610271414
+      channel: stable
+    intel-device-plugins:
+      # intel-device-plugins-operator 0.37.1 (certified-operators catalog)
+      channel: stable
+    intel-tdx-dcap:
+      # intel-tdx-dcap-operator 0.1.0 (certified-operators catalog)
+      channel: alpha
