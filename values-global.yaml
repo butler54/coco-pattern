@@ -5,7 +5,7 @@ global:
   singleArgoCD: true
   multiSourceRepoUrl: quay.io/validatedpatterns
   storageProvider: lvm  # Options: hpp, lvm, external
-  clusterVersion: "4.22"  # OCP minor version for operator pins. Options: 4.19, 4.20, 4.21
+  clusterVersion: "4.19"  # OCP minor version for operator pins. Options: 4.19, 4.20, 4.21
   # Airgap / disconnected master switch. false (default, connected):
   # Intel DCAP zero-touch platform registration (vault/ESO PCS API key),
   # trustee fetches platform collateral directly from Intel PCS.
@@ -58,12 +58,12 @@ main:
   #   baremetal-hub  — Bare metal hub (Trustee + ACM, mixed TDX/SNP, manages baremetal spokes)
   #   baremetal-spoke — Bare metal spoke (imported into ACM from baremetal-hub)
   #   trusted-hub    — Hub for multi-cluster Azure (Trustee + ACM, manages azure-spoke clusters)
-  clusterGroupName: azure
+  clusterGroupName: baremetal
   git:
     # Connected mode: repoURL is inferred from your local git remote.
     # Disconnected: uncomment and set to the HTTP URL served by git-http-server.py
     # repoURL: http://JUMP_HOST_IP:8080/coco-pattern.git
-    revision: main
+    revision: deploy/node-02-4.19-connected
   patternsOperator:
     # Required for airgap -- set to your mirrored catalog source name
     # source: cs-community-operator-index-v4-22
