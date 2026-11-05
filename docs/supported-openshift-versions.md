@@ -9,7 +9,7 @@ supported on, and why.
 
 | OpenShift | Status | Notes |
 |---|---|---|
-| **5.0** | In validation | Initial GA (5.0.0). Connected + disconnected lifecycles under test. |
+| **5.0** | ❌ **Not supportable on Intel TDX (yet)** | Installs cleanly (5.0.0, k8s 1.36.5) and the Kyverno gate passes (MAP API is GA `v1`), **but the Intel device/attestation operators are absent from every 5.0 catalog** — no SGX/TDX device plugin, no DCAP/QGS, so attestation is impossible on Intel TDX. Tracked in [#167](https://github.com/validatedpatterns/coco-pattern/issues/167). |
 | **4.22** | **Validated** | Full connected + disconnected lifecycles passed (4.22.17), including attestation and confidential workload image pulls. |
 | **4.21** | ❌ **Not supported** | Below the floor. Installs cleanly (k8s 1.34.9) but the admissionregistration group serves only `v1` — no MutatingAdmissionPolicy resource — so Kyverno cannot start. Measured, not assumed. |
 | 4.20 | ❌ **Not supported** | Below the floor, same cause (API absent on k8s 1.33). |
@@ -18,9 +18,9 @@ supported on, and why.
 
 ```
 4.19        4.20        4.21        4.22        4.23        5.0
- ✗───────────✗───────────✗───────────✓───────────✗───────────◐
-                                    floor                   in
-                                    supported               validation
+ ✗───────────✗───────────✗───────────✓───────────✗───────────✗
+                                    floor                 catalog gap
+                                    supported             (Intel TDX)
 ```
 
 "Validated" means the gate set in [What validated means](#what-validated-means)
@@ -61,6 +61,24 @@ to its own claimed support, not a property of older OpenShift.
 
 This is tracked upstream as
 [validatedpatterns/coco-pattern#166](https://github.com/validatedpatterns/coco-pattern/issues/166).
+
+## Why 5.0 is not supportable on Intel TDX
+
+OpenShift 5.0.0 installs cleanly (Kubernetes 1.36.5), the Kyverno gate is
+satisfied (MutatingAdmissionPolicy is GA as `admissionregistration.k8s.io/v1`),
+and the confidential-containers stack is otherwise present — `sandboxed-containers-operator` 1.13.1, `trustee-operator` 1.2.1, GitOps 1.22.3, ACM/MCE 2.17.3,
+ESO 1.2.1, cert-manager 1.20.1, LVMS `stable-5.0` 5.0.0, CNV 5.0.0, NFD 5.0.0.
+
+What is missing is the Intel hardware-attestation chain. Across all 499
+packages in the 5.0 catalogs there is **no** `intel-device-plugins-operator` and
+**no** `intel-tdx-dcap-operator` (both present on 4.x, `certified-operators`):
+
+- no device plugin ⇒ no SGX/TDX device exposure for quoting workloads
+- no DCAP operator ⇒ no QGS/PCCS ⇒ no TDX quote for attestation
+
+So on Intel TDX hardware, 5.0 cannot attest. Other TEE profiles use different
+components and are not covered by this finding. Tracked in
+[#167](https://github.com/validatedpatterns/coco-pattern/issues/167).
 
 ## Restoring support for 4.19 / 4.20 / 4.21
 
