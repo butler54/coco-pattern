@@ -1,7 +1,7 @@
 # Supported OpenShift versions
 
-**Minimum supported version: OpenShift 4.21.**
-**Status as of 2026-11-05** — this page is the authoritative summary of which
+**Minimum supported version: OpenShift 4.22.**
+**Status as of 2026-11-05 (revised)** — this page is the authoritative summary of which
 OpenShift minor versions the Confidential Containers validated pattern is
 supported on, and why.
 
@@ -11,23 +11,23 @@ supported on, and why.
 |---|---|---|
 | **5.0** | In validation | Initial GA (5.0.0). Connected + disconnected lifecycles under test. |
 | **4.22** | **Validated** | Full connected + disconnected lifecycles passed (4.22.17), including attestation and confidential workload image pulls. |
-| **4.21** | **Minimum supported** — in validation | Floor of the support range. Connected + disconnected lifecycles under test. |
-| 4.20 | ❌ **Not supported** | Below the floor. Installs cleanly but cannot converge — see [Why 4.21 is the minimum](#why-421-is-the-minimum). |
-| 4.19 | ❌ **Not supported** | Below the floor, same cause as 4.20. |
+| **4.21** | ❌ **Not supported** | Below the floor. Installs cleanly (k8s 1.34.9) but the admissionregistration group serves only `v1` — no MutatingAdmissionPolicy resource — so Kyverno cannot start. Measured, not assumed. |
+| 4.20 | ❌ **Not supported** | Below the floor, same cause (API absent on k8s 1.33). |
+| 4.19 | ❌ **Not supported** | Below the floor, same cause (API absent on k8s 1.32; crashloop observed). |
 | 4.23 | — | **Never released.** There is no OpenShift 4.23; the upgrade path goes 4.22 → 5.0. |
 
 ```
 4.19        4.20        4.21        4.22        4.23        5.0
- ✗     ──────✗───── ─────✓───────────✓───────────✗───────────◐
-                    floor                                   in
-                    supported                               validation
+ ✗───────────✗───────────✗───────────✓───────────✗───────────◐
+                                    floor                   in
+                                    supported               validation
 ```
 
 "Validated" means the gate set in [What validated means](#what-validated-means)
 passed on a clean install. "In validation" means not every gate has been
 demonstrated yet on that version, and no support claim is made.
 
-## Why 4.21 is the minimum
+## Why 4.22 is the minimum
 
 The pattern's policy engine is Kyverno (vendored chart `3.7.2`, application
 version `v1.17.2`). Its admission controller **unconditionally watches** the
@@ -40,10 +40,10 @@ That API is not served on older Kubernetes versions used by OpenShift:
 |---|---|---|---|
 | 4.19 | 1.32 | absent | `CrashLoopBackOff` (observed) |
 | 4.20 | 1.33 | absent (verified via `oc api-resources`) | same failure |
-| 4.21 | 1.34 | served as `v1beta1` | expected to run |
-| 4.22 | 1.35 | served | runs (validated) |
+| 4.21 | 1.34 | **absent** (group serves only `v1`) | same failure |
+| 4.22 | 1.35 | present | runs (validated) |
 
-On 4.19 and 4.20 the result is:
+On 4.19, 4.20 and 4.21 the result is:
 
 - `kyverno-admission-controller` cannot sync its informer caches
   (`failed to list *v1alpha1.MutatingAdmissionPolicy: the server could not find
@@ -59,11 +59,13 @@ There is **no configuration-only workaround**: the chart's own switches
 `kubeVersion: '>=1.25.0-0'`, so this is an **upstream Kyverno defect** relative
 to its own claimed support, not a property of older OpenShift.
 
-This is tracked upstream in the pattern repository.
+This is tracked upstream as
+[validatedpatterns/coco-pattern#166](https://github.com/validatedpatterns/coco-pattern/issues/166).
 
-## Restoring support for 4.19 / 4.20
+## Restoring support for 4.19 / 4.20 / 4.21
 
-Both routes require a repository change; neither is implemented:
+A single Kyverno pin would restore **three** minor versions. Both routes require
+a repository change; neither is implemented:
 
 1. **Per-version Kyverno pin** — select a Kyverno release that does not watch the
    absent alpha API, chosen by `global.clusterVersion` (vendored second chart or
