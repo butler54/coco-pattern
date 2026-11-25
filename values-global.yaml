@@ -5,19 +5,19 @@ global:
   singleArgoCD: true
   multiSourceRepoUrl: quay.io/validatedpatterns
   storageProvider: lvm  # Options: hpp, lvm, external
-  clusterVersion: "4.22"  # OCP minor version for operator pins. 4.22 is the default; 5.0 is also supported (overrides/values-5.0.yaml). The 4.19-4.21 overlays exist but are not covered by this branch's validation.
+  clusterVersion: "5.0"  # OCP minor version for operator pins. 4.22 is the default; 5.0 is also supported (overrides/values-5.0.yaml). The 4.19-4.21 overlays exist but are not covered by this branch's validation.
   # Airgap / disconnected master switch. false (default, connected):
   # Intel DCAP zero-touch registration; trustee collateral from Intel PCS.
   # true: loads the airgap overlay (repoints subscriptions and workload
   # images at the mirror); manual PCK provisioning (scripts/dcap-pck.py)
   # and file-backed collateral.
-  airgap: false
+  airgap: true
   # Mirror root for the workload image rewrite — set on the disconnected
   # deploy branch to the value oc-mirror was pointed at. MUST include the
   # org path for Quay targets (e.g. quay.example:443/mirror): CoCo guest
   # VMs pull images directly. Empty is fine while connected; the workload
   # charts fail rendering in airgap mode while it is empty or a placeholder.
-  mirrorRegistry: ""
+  mirrorRegistry: quay.apac-tech-lab.net:443/mirror
   secretStore:
     # Warning: This must be present even if it is set to none.
     backend: vault # none, vault, kubernetes
@@ -46,7 +46,7 @@ global:
     # Node OS generation (matches install-config osImageStream). 5.0 defaults to
     # rhel-10; set rhel-9 when the payload's CoCo/kata/edk2 artifacts are el9.
     # Gates the RHEL 10-only SELinux kvm_gmem policy.
-    osStream: rhel-10
+    osStream: rhel-9
     # Hosted Control Planes (HCP) mode. When true, MachineConfig resources are skipped
     # (no Machine Config Daemon on HCP workers). The sandboxed-containers operator
     # auto-detects HCP and uses DaemonSet deployment mode (Tech Preview in OSC 1.13).
@@ -60,23 +60,23 @@ main:
   #   baremetal-hub  — Bare metal hub (Trustee + ACM, mixed TDX/SNP, manages baremetal spokes)
   #   baremetal-spoke — Bare metal spoke (imported into ACM from baremetal-hub)
   #   trusted-hub    — Hub for multi-cluster Azure (Trustee + ACM, manages azure-spoke clusters)
-  clusterGroupName: azure
+  clusterGroupName: baremetal
   git:
     # Connected mode: repoURL is inferred from your local git remote.
     # Disconnected: uncomment and set to the HTTP URL served by git-http-server.py
-    # repoURL: http://JUMP_HOST_IP:8080/coco-pattern.git
-    revision: main
+    repoURL: http://user-jump.int.apac-tech-lab.net:8080/coco-pattern.git
+    revision: deploy/ocp5-airgap-20261125
   patternsOperator:
     # Required for airgap -- set to your mirrored catalog source name on the
     # disconnected deploy branch (runbook; validated by step 3e). The tag
     # tracks global.clusterVersion (4.22 → -v4-22, 5.0 → -v5-0).
-    # source: cs-community-operator-index-v5-0
+    source: cs-community-operator-index-v5-0
     channel: fast
   gitops:
     # Required for airgap -- set to your mirrored catalog source name on the
     # disconnected deploy branch (runbook; validated by step 3e). The tag
     # tracks global.clusterVersion (4.22 → -v4-22, 5.0 → -v5-0).
-    # operatorSource: cs-redhat-operator-index-v5-0
+    operatorSource: cs-redhat-operator-index-v5-0
 
     # Keep this channel aligned with airgap/imageset-config-<minor>.yaml.
     channel: gitops-1.22
@@ -92,7 +92,7 @@ main:
     # the ArgoCD repo-server performs no IDMS redirect, so this must point
     # at the mirror's chart path (e.g. quay.example.com:443/mirror/validatedpatterns)
     # on the disconnected deploy branch — step 3e fails fast otherwise.
-    helmRepoUrl: quay.io/validatedpatterns
+    helmRepoUrl: quay.apac-tech-lab.net:443/mirror/validatedpatterns
 
 # Common secret store configuration used across multiple charts.
 # NOTE: Charts reference secretStore.* (top-level, not global.secretStore.*).
