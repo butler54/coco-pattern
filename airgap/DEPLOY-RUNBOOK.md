@@ -165,24 +165,33 @@ scripts/enable-airgap-secrets.sh
 The committed tree is a working **connected** install; every disconnected
 delta is a **config-only change on the deploy branch**. The disconnected
 deploy branch used in validation differs from the connected one by exactly
-these eight values:
+these values:
 
 ```yaml
 global:
   airgap: true
   mirrorRegistry: <mirror-root-including-org>          # e.g. quay.example.com:443/mirror
+  clusterVersion: "<minor>"                            # e.g. "5.0" — selects the version overlay
 main:
   clusterGroupName: baremetal
   git:
     repoURL: http://<git-host>:8080/coco-pattern.git   # served by scripts/git-http-server.py
     revision: <deploy-branch>
   patternsOperator:
-    source: cs-community-operator-index-v4-22
+    source: cs-community-operator-index-v<minor-dashed>   # 4.22 → v4-22, 5.0 → v5-0
   gitops:
-    operatorSource: cs-redhat-operator-index-v4-22
+    operatorSource: cs-redhat-operator-index-v<minor-dashed>
   multiSourceConfig:
     helmRepoUrl: <mirror-root-including-org>/validatedpatterns
 ```
+
+The mirrored catalog names are version-derived (see the sharedValueFiles
+tpl in `values-baremetal.yaml`): the airgap overlay is
+`overrides/values-baremetal-airgap-<minor-dashed>.yaml` (`5.0` →
+`values-baremetal-airgap-5-0.yaml`); 4.22 alone keeps the unsuffixed
+`values-baremetal-airgap.yaml` for render byte-compatibility with the
+qualified 4.22 deploy. A new minor needs its overlay file and its
+`airgap/imageset-config-<minor>.yaml`.
 
 - `global.mirrorRegistry` must equal `$MIRROR_REGISTRY` (org path included).
 
@@ -392,8 +401,6 @@ oc get pattern "$PATTERN_NAME" -n "$PATTERN_NS" \
 
 ### C-3: Point the cluster proxy at the mirror CA, then verify it
 
-Two steps, both required on OCP 4.22, then verification.
-
 **Step 1 — make the install-time bundle the cluster trust anchor.** The
 install-time `--additional-trust-bundle` (B-1) writes the mirror CA into
 `openshift-config/user-ca-bundle`, but that alone does **not** make it the
@@ -407,12 +414,20 @@ repo-server's first chart fetch fails:
 helm registry login quay.example.com:443 … x509: certificate signed by unknown authority
 ```
 
+This is now **step 7 of `scripts/airgap-post-install.sh`**
+(`configure_cluster_trusted_ca`, airgap-gated and idempotent). Because the
+bootstrap runs before the pattern deploys, the injected ConfigMaps are
+born with the mirror CA already in them — the post-deploy repo-server
+restart below is only needed when the patch is applied *after* a pattern
+deploy (e.g. recovery on an existing cluster):
+
 ```bash
 oc patch proxy cluster --type merge \
   -p '{"spec":{"trustedCA":{"name":"user-ca-bundle"}}}'
 ```
 
-**Step 2 — roll the repo-server** so the `fetch-ca` init container
+**Step 2 — roll the repo-server** (recovery path only, when step 1 was
+applied after the pattern deploy) so the `fetch-ca` init container
 re-concatenates the now-injected bundle (with the kube root CA) into the
 CA bundle the repo-server uses:
 
@@ -423,9 +438,10 @@ oc rollout status  deployment/vp-gitops-repo-server -n vp-gitops --timeout=5m
 
 Both steps are safe to repeat: the `proxy` patch is a no-op when the field
 already holds that value, while the `rollout restart` deliberately triggers
-another rollout each time (that is what makes the bundle get picked up). This is a real gap in the bootstrap, not a
-one-off lab quirk: the patch belongs in `scripts/airgap-post-install.sh`,
-tracked upstream (see the PR's follow-up issues). The earlier
+another rollout each time (that is what makes the bundle get picked up).
+The bootstrap gap itself — the patch not being part of the scripted
+post-install — is closed: it is step 7 of `scripts/airgap-post-install.sh`
+(tracked upstream, see the PR's follow-up issues). The earlier
 `argocd-tls-certs-cm` patch was a different and genuinely useless thing —
 it always ran before the `vp-gitops` namespace existed — so it stays
 deleted; it is not a substitute for the `proxy/cluster` patch above.
